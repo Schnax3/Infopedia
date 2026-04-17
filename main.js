@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════
-//  INFOMPEDIA — main.js
+//  INFOPEDIA — main.js
 //  Firebase Realtime Database + Auth  |  Roles: admin / mod / user
 // ══════════════════════════════════════════════════════════════════
 
@@ -237,7 +237,7 @@ window.doRegister = async function() {
       banned: false
     });
     closeModal();
-    toast('Account created! Welcome to Infompedia.', 'success');
+    toast('Account created! Welcome to Infopedia.', 'success');
   } catch(e) {
     toast('Registration failed: ' + e.message, 'error');
   }
@@ -298,7 +298,7 @@ async function renderHome() {
   app$().innerHTML = `
     <div class="page">
       <div class="home-hero">
-        <h1><span style="color:var(--gold)">I</span>nfompedia</h1>
+        <h1><span style="color:var(--gold)">I</span>nfopedia</h1>
         <p class="tagline">The free encyclopedia that anyone can build.</p>
         <div class="home-stats">
           <div class="stat-item">
