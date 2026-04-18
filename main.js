@@ -142,6 +142,7 @@ function renderAuthArea() {
           ${r === 'user' ? `<div class="ud-item" onclick="navigate('apply')">Apply for Mod</div>` : ''}
           <div class="ud-item" onclick="navigate('create')">Create Article</div>
           <div class="ud-item danger" onclick="doSignOut()">Sign out</div>
+          <div class="ud-item" onclick="clearSiteData()">🗑 Clear Cache & Cookies</div>
         </div>
       </div>`;
   }
@@ -1165,6 +1166,44 @@ async function renderProfile() {
       </div>
     </div>`;
 }
+// ─── CACHE & COOKIE CLEARER ───────────────────────────────────────
+window.clearSiteData = async function() {
+  if (!confirm('This will clear all cached data and cookies for Infopedia and sign you out. Continue?')) return;
 
+  // Sign out first
+  try { await signOut(auth); } catch(e) {}
+
+  // Clear localStorage & sessionStorage
+  localStorage.clear();
+  sessionStorage.clear();
+
+  // Clear all cookies for this domain
+  document.cookie.split(';').forEach(cookie => {
+    const name = cookie.split('=')[0].trim();
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+  });
+
+  // Clear Cache Storage (service worker caches)
+  if ('caches' in window) {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));
+  }
+
+  // Unregister service workers
+  if ('serviceWorker' in navigator) {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map(r => r.unregister()));
+  }
+
+  // IndexedDB (Firebase uses this internally)
+  if ('indexedDB' in window) {
+    indexedDB.databases?.().then(dbs => {
+      dbs.forEach(db => indexedDB.deleteDatabase(db.name));
+    }).catch(() => {});
+  }
+
+  toast('Cache cleared! Reloading…', 'success');
+  setTimeout(() => location.reload(true), 1200);
+};
 // ─── INIT ────────────────────────────────────────────────────────
 renderHome();
