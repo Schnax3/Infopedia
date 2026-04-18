@@ -14,30 +14,30 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 // ─── Firebase Config ──────────────────────────────────────────────
- const firebaseConfig = {
-    apiKey: "AIzaSyDV3g-gsC9cLB2ownqdz4ovFHK17A8JHMg",
-    authDomain: "infopedia-62afe.firebaseapp.com",
-    databaseURL: "https://infopedia-62afe-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "infopedia-62afe",
-    storageBucket: "infopedia-62afe.firebasestorage.app",
-    messagingSenderId: "669538536608",
-    appId: "1:669538536608:web:03e64ce7d484580e00cdc5",
-    measurementId: "G-HKVJFBPFYZ"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyDV3g-gsC9cLB2ownqdz4ovFHK17A8JHMg",
+  authDomain: "infopedia-62afe.firebaseapp.com",
+  databaseURL: "https://infopedia-62afe-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "infopedia-62afe",
+  storageBucket: "infopedia-62afe.firebasestorage.app",
+  messagingSenderId: "669538536608",
+  appId: "1:669538536608:web:03e64ce7d484580e00cdc5",
+  measurementId: "G-HKVJFBPFYZ"
+};
 
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getDatabase(app);
 
 // ─── App State ────────────────────────────────────────────────────
-let currentUser   = null;   // Firebase Auth user
-let currentProfile= null;   // DB profile { displayName, role, … }
-let currentPage   = 'home';
-let unsubscribers = [];     // onValue listeners to clean up
+let currentUser    = null;   // Firebase Auth user
+let currentProfile = null;   // DB profile { displayName, role, … }
+let currentPage    = 'home';
+let unsubscribers  = [];     // onValue listeners to clean up
 
-// ─── Helpers ─────────────────────────────────────────────────────
-const $ = id => document.getElementById(id);
-const app$  = () => $('app');
+// ─── Helpers ──────────────────────────────────────────────────────
+const $    = id => document.getElementById(id);
+const app$ = ()  => $('app');
 
 function toast(msg, type = '') {
   const t = $('toast');
@@ -48,21 +48,24 @@ function toast(msg, type = '') {
   t._timer = setTimeout(() => t.classList.add('hidden'), 3200);
 }
 
-function ts() { return serverTimestamp(); }
-
 function fmtDate(v) {
   if (!v) return '—';
   const d = new Date(typeof v === 'number' ? v : Date.now());
-  return d.toLocaleDateString('en-GB', { year:'numeric', month:'short', day:'numeric' });
+  return d.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
 }
+
 function fmtDateTime(v) {
   if (!v) return '—';
   const d = new Date(typeof v === 'number' ? v : Date.now());
-  return d.toLocaleString('en-GB', { dateStyle:'medium', timeStyle:'short' });
+  return d.toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
 function escHtml(s) {
-  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 // Parse simple wiki markup to HTML
@@ -93,27 +96,28 @@ function slugify(s) {
   return s.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
 }
 
-// ─── Navigation ────────────────────────────────────────────────
+// ─── Navigation ───────────────────────────────────────────────────
 window.navigate = function(page, arg = '') {
   unsubscribers.forEach(u => u());
   unsubscribers = [];
   currentPage = page;
   window.scrollTo(0, 0);
-  switch(page) {
-    case 'home':    renderHome(); break;
-    case 'article': renderArticle(arg); break;
-    case 'edit':    renderEditor(arg); break;
-    case 'create':  renderEditor(''); break;
-    case 'admin':   renderAdminPanel(); break;
-    case 'mod':     renderModPanel(); break;
-    case 'profile': renderProfile(); break;
-    case 'apply':   renderApply(); break;
-    case 'logs':    renderLogs(arg); break;
-    default:        renderHome();
+  switch (page) {
+    case 'home':     renderHome();          break;
+    case 'article':  renderArticle(arg);    break;
+    case 'edit':     renderEditor(arg);     break;
+    case 'create':   renderEditor('');      break;
+    case 'admin':    renderAdminPanel();    break;
+    case 'mod':      renderModPanel();      break;
+    case 'profile':  renderProfile();       break;
+    case 'apply':    renderApply();         break;
+    case 'logs':     renderLogs(arg);       break;
+    case 'category': renderCategory(arg);   break;
+    default:         renderHome();
   }
 };
 
-// ─── Auth UI ─────────────────────────────────────────────────────
+// ─── Auth UI ──────────────────────────────────────────────────────
 function renderAuthArea() {
   const area = $('auth-area');
   if (!currentUser) {
@@ -121,8 +125,8 @@ function renderAuthArea() {
       <button class="nav-btn" onclick="showAuth('login')">Sign in</button>
       <button class="nav-btn" onclick="showAuth('register')">Join</button>`;
   } else {
-    const r = currentProfile?.role || 'user';
-    const initials = (currentProfile?.displayName || currentUser.email || 'U').slice(0,2).toUpperCase();
+    const r        = currentProfile?.role || 'user';
+    const initials = (currentProfile?.displayName || currentUser.email || 'U').slice(0, 2).toUpperCase();
     area.innerHTML = `
       <div class="user-badge" onclick="toggleUserMenu()">
         <div class="avatar ${r}">${initials}</div>
@@ -159,8 +163,8 @@ window.showAuth = function(tab = 'login') {
   m.innerHTML = `
     <button class="modal-close" onclick="closeModal()">&times;</button>
     <div class="auth-tabs">
-      <div class="auth-tab ${tab==='login'?'active':''}" id="tab-login" onclick="switchAuthTab('login')">Sign In</div>
-      <div class="auth-tab ${tab==='register'?'active':''}" id="tab-register" onclick="switchAuthTab('register')">Register</div>
+      <div class="auth-tab ${tab === 'login' ? 'active' : ''}" id="tab-login" onclick="switchAuthTab('login')">Sign In</div>
+      <div class="auth-tab ${tab === 'register' ? 'active' : ''}" id="tab-register" onclick="switchAuthTab('register')">Register</div>
     </div>
     <div id="auth-form"></div>`;
   renderAuthForm(tab);
@@ -215,7 +219,7 @@ window.doLogin = async function() {
     await signInWithEmailAndPassword(auth, email, pass);
     closeModal();
     toast('Welcome back!', 'success');
-  } catch(e) {
+  } catch (e) {
     toast('Login failed: ' + e.message, 'error');
   }
 };
@@ -228,7 +232,6 @@ window.doRegister = async function() {
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, pass);
     await updateProfile(cred.user, { displayName: name });
-    // Write profile to DB
     await set(ref(db, `users/${cred.user.uid}`), {
       displayName: name,
       email,
@@ -238,7 +241,7 @@ window.doRegister = async function() {
     });
     closeModal();
     toast('Account created! Welcome to Infopedia.', 'success');
-  } catch(e) {
+  } catch (e) {
     toast('Registration failed: ' + e.message, 'error');
   }
 };
@@ -255,7 +258,6 @@ async function loadProfile(uid) {
   if (snap.exists()) {
     currentProfile = snap.val();
   } else {
-    // create default profile
     currentProfile = { displayName: currentUser.email, role: 'user', joinedAt: Date.now(), banned: false };
     await set(ref(db, `users/${uid}`), { ...currentProfile, email: currentUser.email });
   }
@@ -266,10 +268,9 @@ onAuthStateChanged(auth, async user => {
   currentUser = user;
   if (user) {
     await loadProfile(user.uid);
-    // Check if banned
     if (currentProfile.banned) {
       await signOut(auth);
-      currentUser = null;
+      currentUser    = null;
       currentProfile = null;
       toast('Your account has been banned.', 'error');
     }
@@ -284,15 +285,14 @@ onAuthStateChanged(auth, async user => {
 async function renderHome() {
   app$().innerHTML = `<div class="loading-center"><div class="spinner"></div></div>`;
   const pagesSnap = await get(ref(db, 'articles'));
-  const articles = pagesSnap.exists() ? Object.entries(pagesSnap.val()) : [];
-  const visible  = articles.filter(([,a]) => !a.deleted);
-  const recent   = [...visible].sort((a,b) => (b[1].updatedAt||0) - (a[1].updatedAt||0)).slice(0,10);
+  const articles  = pagesSnap.exists() ? Object.entries(pagesSnap.val()) : [];
+  const visible   = articles.filter(([, a]) => !a.deleted);
+  const recent    = [...visible].sort((a, b) => (b[1].updatedAt || 0) - (a[1].updatedAt || 0)).slice(0, 10);
 
-  // Categories
   const cats = {};
-  visible.forEach(([,a]) => {
+  visible.forEach(([, a]) => {
     const c = a.category || 'Uncategorised';
-    cats[c] = (cats[c]||0) + 1;
+    cats[c] = (cats[c] || 0) + 1;
   });
 
   app$().innerHTML = `
@@ -319,7 +319,7 @@ async function renderHome() {
       <h2>Browse by Category</h2>
       <div class="cat-grid">
         ${Object.entries(cats).map(([cat, count]) => `
-          <div class="cat-card" onclick="browseCategory('${escHtml(cat)}')">
+          <div class="cat-card" onclick="navigate('category','${escHtml(cat)}')">
             <h3>${escHtml(cat)}</h3>
             <p>${count} article${count !== 1 ? 's' : ''}</p>
           </div>`).join('') || '<p class="muted">No categories yet.</p>'}
@@ -331,7 +331,7 @@ async function renderHome() {
           <div class="article-list-item">
             <div>
               <span class="ali-title" onclick="navigate('article','${escHtml(slug)}')">${escHtml(a.title)}</span>
-              <span class="muted" style="margin-left:0.5rem">${escHtml(a.category||'')}</span>
+              <span class="muted" style="margin-left:0.5rem">${escHtml(a.category || '')}</span>
             </div>
             <span class="ali-meta">${fmtDate(a.updatedAt)}</span>
           </div>`).join('')
@@ -340,12 +340,47 @@ async function renderHome() {
     </div>`;
 }
 
-window.browseCategory = function(cat) {
-  navigate('home'); // simplified: filter inline
-  // In a larger app we'd have a dedicated browse page
-};
+// ─── CATEGORY PAGE ────────────────────────────────────────────────
+async function renderCategory(cat) {
+  app$().innerHTML = `<div class="loading-center"><div class="spinner"></div></div>`;
+  const snap     = await get(ref(db, 'articles'));
+  const articles = snap.exists() ? Object.entries(snap.val()) : [];
+  const filtered = articles
+    .filter(([, a]) => !a.deleted && (a.category || 'Uncategorised') === cat)
+    .sort((a, b) => (b[1].updatedAt || 0) - (a[1].updatedAt || 0));
 
-// ─── SEARCH ──────────────────────────────────────────────────────
+  app$().innerHTML = `
+    <div class="page">
+      <div class="flex-between mb1" style="align-items:center;flex-wrap:wrap;gap:0.75rem">
+        <div>
+          <h1 style="margin:0">${escHtml(cat)}</h1>
+          <p class="muted" style="margin:0.25rem 0 0">${filtered.length} article${filtered.length !== 1 ? 's' : ''}</p>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="navigate('home')">← All Categories</button>
+      </div>
+      <hr style="margin:1.25rem 0">
+
+      ${filtered.length ? filtered.map(([slug, a]) => `
+        <div class="article-list-item">
+          <div>
+            <span class="ali-title" onclick="navigate('article','${escHtml(slug)}')">${escHtml(a.title)}</span>
+            ${a.subtitle ? `<span class="muted" style="margin-left:0.5rem;font-size:0.85rem">${escHtml(a.subtitle)}</span>` : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:1rem;flex-shrink:0">
+            <span class="muted" style="font-size:0.8rem">by ${escHtml(a.authorName || '—')}</span>
+            <span class="ali-meta">${fmtDate(a.updatedAt)}</span>
+          </div>
+        </div>`).join('')
+      : `<div class="empty-state">
+           <p>No articles in this category yet.</p>
+           ${currentUser
+             ? `<button class="btn btn-primary mt1" onclick="navigate('create')">Create the first one</button>`
+             : `<button class="btn btn-secondary mt1" onclick="showAuth('register')">Join to contribute</button>`}
+         </div>`}
+    </div>`;
+}
+
+// ─── SEARCH ───────────────────────────────────────────────────────
 const searchInput = $('search-input');
 const searchDD    = $('search-results');
 let searchTimer;
@@ -367,7 +402,7 @@ searchInput.addEventListener('input', () => {
     searchDD.innerHTML = results.map(([slug, a]) => `
       <div class="search-item" onclick="searchSelect('${escHtml(slug)}')">
         <div>${escHtml(a.title)}</div>
-        <div class="s-cat">${escHtml(a.category||'')}</div>
+        <div class="s-cat">${escHtml(a.category || '')}</div>
       </div>`).join('');
     searchDD.classList.remove('hidden');
   }, 250);
@@ -383,23 +418,28 @@ document.addEventListener('click', e => {
   if (!e.target.closest('.search-wrap')) searchDD.classList.add('hidden');
 });
 
-// ─── ARTICLE PAGE ────────────────────────────────────────────────
+// ─── ARTICLE PAGE ─────────────────────────────────────────────────
 async function renderArticle(slug) {
   if (!slug) { renderHome(); return; }
   app$().innerHTML = `<div class="loading-center"><div class="spinner"></div></div>`;
 
   const snap = await get(ref(db, `articles/${slug}`));
   if (!snap.exists() || snap.val().deleted) {
-    app$().innerHTML = `<div class="page empty-state"><h3>Article not found</h3><p>This article may have been deleted or never existed.</p><button class="btn btn-secondary mt1" onclick="navigate('home')">← Back to Home</button></div>`;
+    app$().innerHTML = `
+      <div class="page empty-state">
+        <h3>Article not found</h3>
+        <p>This article may have been deleted or never existed.</p>
+        <button class="btn btn-secondary mt1" onclick="navigate('home')">← Back to Home</button>
+      </div>`;
     return;
   }
 
-  const article = snap.val();
-  const role  = currentProfile?.role || 'guest';
-  const uid   = currentUser?.uid;
-  const isOwner = uid && article.authorId === uid;
-  const canEdit = currentUser && (role === 'admin' || role === 'mod' || isOwner);
-  const toc = extractToc(article.content || '');
+  const article  = snap.val();
+  const role     = currentProfile?.role || 'guest';
+  const uid      = currentUser?.uid;
+  const isOwner  = uid && article.authorId === uid;
+  const canEdit  = currentUser && (role === 'admin' || role === 'mod' || isOwner);
+  const toc      = extractToc(article.content || '');
 
   app$().innerHTML = `
     <div class="page">
@@ -410,7 +450,13 @@ async function renderArticle(slug) {
             ${article.subtitle ? `<p class="article-subtitle">${escHtml(article.subtitle)}</p>` : ''}
             <div class="article-meta">
               <span>Author: <strong>${escHtml(article.authorName || 'Unknown')}</strong></span>
-              <span>Category: <strong>${escHtml(article.category || '—')}</strong></span>
+              <span>Category:
+                <strong>
+                  <a href="#" onclick="navigate('category','${escHtml(article.category || 'Uncategorised')}')" style="color:inherit">
+                    ${escHtml(article.category || '—')}
+                  </a>
+                </strong>
+              </span>
               <span>Updated: <strong>${fmtDate(article.updatedAt)}</strong></span>
             </div>
           </div>
@@ -440,7 +486,14 @@ async function renderArticle(slug) {
           <div class="sidebar-card">
             <h4>Article Info</h4>
             <div class="sidebar-row"><span class="sidebar-label">Created</span><span class="sidebar-val">${fmtDate(article.createdAt)}</span></div>
-            <div class="sidebar-row"><span class="sidebar-label">Category</span><span class="sidebar-val">${escHtml(article.category||'—')}</span></div>
+            <div class="sidebar-row">
+              <span class="sidebar-label">Category</span>
+              <span class="sidebar-val">
+                <a href="#" onclick="navigate('category','${escHtml(article.category || 'Uncategorised')}')" style="color:inherit">
+                  ${escHtml(article.category || '—')}
+                </a>
+              </span>
+            </div>
             <div class="sidebar-row"><span class="sidebar-label">Slug</span><span class="sidebar-val" style="font-family:monospace;font-size:0.78rem">${escHtml(slug)}</span></div>
           </div>
         </aside>
@@ -450,17 +503,19 @@ async function renderArticle(slug) {
   loadDiscussions(slug);
 }
 
-// ─── DISCUSSIONS ─────────────────────────────────────────────────
+// ─── DISCUSSIONS ──────────────────────────────────────────────────
 function loadDiscussions(articleSlug) {
   const sec = $('discussion-section');
   if (!sec) return;
-  const role  = currentProfile?.role || 'guest';
-  const uid   = currentUser?.uid;
+  const role   = currentProfile?.role || 'guest';
+  const uid    = currentUser?.uid;
   const canMod = role === 'mod' || role === 'admin';
 
   const discRef = ref(db, `discussions/${articleSlug}`);
   const unsub = onValue(discRef, snap => {
-    const threads = snap.exists() ? Object.entries(snap.val()).filter(([,t]) => !t.deleted) : [];
+    const threads = snap.exists()
+      ? Object.entries(snap.val()).filter(([, t]) => !t.deleted)
+      : [];
 
     sec.innerHTML = `
       <div class="discussion-section">
@@ -495,7 +550,9 @@ function renderThreadHtml(slug, tid, thread, uid, role, canMod) {
           <div>
             <span class="disc-msg-author">${escHtml(msg.authorName)}</span>
             <span class="disc-msg-time">${fmtDateTime(msg.createdAt)}</span>
-            ${msg.authorRole && msg.authorRole !== 'user' ? `<span class="role-pill ${msg.authorRole}" style="margin-left:0.3rem">${msg.authorRole}</span>` : ''}
+            ${msg.authorRole && msg.authorRole !== 'user'
+              ? `<span class="role-pill ${msg.authorRole}" style="margin-left:0.3rem">${msg.authorRole}</span>`
+              : ''}
           </div>
           <div class="disc-msg-body">${escHtml(msg.body)}</div>
           ${canMod && !thread.closed ? `
@@ -589,20 +646,20 @@ window.deleteMessage = async function(slug, tid, mid) {
   toast('Message deleted.');
 };
 
-// ─── LOG ACTION ────────────────────────────────────────────────
+// ─── LOG ACTION ───────────────────────────────────────────────────
 async function logAction(articleSlug, action, meta = {}) {
   const key = push(ref(db, `logs/${articleSlug}`)).key;
   await set(ref(db, `logs/${articleSlug}/${key}`), {
     action,
-    meta: JSON.stringify(meta),
-    userId: currentUser?.uid || 'system',
-    userName: currentProfile?.displayName || 'System',
-    userRole: currentProfile?.role || 'user',
+    meta:      JSON.stringify(meta),
+    userId:    currentUser?.uid || 'system',
+    userName:  currentProfile?.displayName || 'System',
+    userRole:  currentProfile?.role || 'user',
     createdAt: Date.now()
   });
 }
 
-// ─── EDITOR ────────────────────────────────────────────────────
+// ─── EDITOR ───────────────────────────────────────────────────────
 async function renderEditor(slug) {
   if (!currentUser) { showAuth('login'); return; }
 
@@ -696,18 +753,20 @@ window.saveArticle = async function(existingSlug) {
 
   if (isNew) {
     const check = await get(ref(db, `articles/${slug}`));
-    if (check.exists() && !check.val().deleted) { toast('An article with this title already exists.', 'error'); return; }
+    if (check.exists() && !check.val().deleted) {
+      toast('An article with this title already exists.', 'error');
+      return;
+    }
   }
 
   const existing = isNew ? null : (await get(ref(db, `articles/${existingSlug}`))).val();
 
-  // Save revision history
   if (!isNew && existing) {
     const revKey = push(ref(db, `revisions/${slug}`)).key;
     await set(ref(db, `revisions/${slug}/${revKey}`), {
       ...existing,
-      savedAt: Date.now(),
-      savedBy: currentUser.uid,
+      savedAt:     Date.now(),
+      savedBy:     currentUser.uid,
       savedByName: currentProfile.displayName
     });
   }
@@ -715,13 +774,13 @@ window.saveArticle = async function(existingSlug) {
   const now = Date.now();
   await set(ref(db, `articles/${slug}`), {
     title, subtitle, category, content,
-    authorId:   isNew ? currentUser.uid   : existing?.authorId,
-    authorName: isNew ? currentProfile.displayName : existing?.authorName,
-    updatedBy:  currentUser.uid,
+    authorId:      isNew ? currentUser.uid            : existing?.authorId,
+    authorName:    isNew ? currentProfile.displayName : existing?.authorName,
+    updatedBy:     currentUser.uid,
     updatedByName: currentProfile.displayName,
-    createdAt:  isNew ? now : existing?.createdAt,
-    updatedAt:  now,
-    deleted: false
+    createdAt:     isNew ? now : existing?.createdAt,
+    updatedAt:     now,
+    deleted:       false
   });
 
   await logAction(slug, isNew ? 'article_created' : 'article_edited', { summary: summary || 'No summary' });
@@ -729,7 +788,7 @@ window.saveArticle = async function(existingSlug) {
   navigate('article', slug);
 };
 
-// ─── DELETE ARTICLE ──────────────────────────────────────────────
+// ─── DELETE ARTICLE ───────────────────────────────────────────────
 window.deleteArticle = async function(slug) {
   if (!confirm('Permanently delete this article?')) return;
   await update(ref(db, `articles/${slug}`), { deleted: true });
@@ -746,12 +805,12 @@ async function renderLogs(slug) {
   app$().innerHTML = `<div class="loading-center"><div class="spinner"></div></div>`;
   const snap = await get(ref(db, `logs/${slug}`));
   const logs = snap.exists()
-    ? Object.values(snap.val()).sort((a,b) => (b.createdAt||0) - (a.createdAt||0))
+    ? Object.values(snap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
     : [];
 
   const revSnap = await get(ref(db, `revisions/${slug}`));
-  const revs = revSnap.exists()
-    ? Object.entries(revSnap.val()).sort((a,b) => (b[1].savedAt||0) - (a[1].savedAt||0))
+  const revs    = revSnap.exists()
+    ? Object.entries(revSnap.val()).sort((a, b) => (b[1].savedAt || 0) - (a[1].savedAt || 0))
     : [];
 
   app$().innerHTML = `
@@ -768,7 +827,7 @@ async function renderLogs(slug) {
           <span class="log-action">${escHtml(l.action)}</span>
           <span class="log-user">${escHtml(l.userName)}</span>
           <span class="role-pill ${l.userRole}">${l.userRole}</span>
-          <span class="muted">${escHtml(l.meta||'')}</span>
+          <span class="muted">${escHtml(l.meta || '')}</span>
         </div>`).join('')}
 
       <h2 style="margin-top:2rem">Revision History</h2>
@@ -776,16 +835,16 @@ async function renderLogs(slug) {
         <div class="log-entry" style="flex-direction:column;align-items:flex-start;gap:0.3rem">
           <div class="flex-gap">
             <span class="log-time">${fmtDateTime(r.savedAt)}</span>
-            <span class="log-user">${escHtml(r.savedByName||'?')}</span>
+            <span class="log-user">${escHtml(r.savedByName || '?')}</span>
           </div>
           <div class="muted" style="font-size:0.82rem">
-            Title: "${escHtml(r.title)}" — ${(r.content||'').length} chars
+            Title: "${escHtml(r.title)}" — ${(r.content || '').length} chars
           </div>
         </div>`).join('')}
     </div>`;
 }
 
-// ─── MOD PANEL ───────────────────────────────────────────────────
+// ─── MOD PANEL ────────────────────────────────────────────────────
 async function renderModPanel() {
   const role = currentProfile?.role;
   if (role !== 'mod' && role !== 'admin') { toast('Access denied', 'error'); navigate('home'); return; }
@@ -805,21 +864,20 @@ async function renderModPanel() {
     <div class="panel-page">
       <h1>Moderator Panel</h1>
       <div class="panel-tabs">
-        <div class="panel-tab active" id="ptab-users" onclick="switchPanelTab('users')">Users</div>
-        <div class="panel-tab" id="ptab-articles" onclick="switchPanelTab('articles')">Articles</div>
-        <div class="panel-tab" id="ptab-apps" onclick="switchPanelTab('apps')">Mod Applications</div>
+        <div class="panel-tab active" id="ptab-users"    onclick="switchPanelTab('users')">Users</div>
+        <div class="panel-tab"        id="ptab-articles" onclick="switchPanelTab('articles')">Articles</div>
+        <div class="panel-tab"        id="ptab-apps"     onclick="switchPanelTab('apps')">Mod Applications</div>
       </div>
-
       <div id="ptab-content-users">${renderModUsers(users)}</div>
       <div id="ptab-content-articles" class="hidden">${renderModArticles(articles)}</div>
-      <div id="ptab-content-apps" class="hidden">${renderModApps(apps, role)}</div>
+      <div id="ptab-content-apps"     class="hidden">${renderModApps(apps, role)}</div>
     </div>`;
 }
 
 window.switchPanelTab = function(tab) {
   document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
   $('ptab-' + tab).classList.add('active');
-  ['users','articles','apps'].forEach(t => {
+  ['users', 'articles', 'apps'].forEach(t => {
     $('ptab-content-' + t).classList.toggle('hidden', t !== tab);
   });
 };
@@ -832,15 +890,17 @@ function renderModUsers(users) {
       <tbody>
         ${users.map(([uid, u]) => `
           <tr>
-            <td>${escHtml(u.displayName||'—')}</td>
-            <td>${escHtml(u.email||'—')}</td>
-            <td><span class="role-pill ${u.role||'user'}">${u.role||'user'}</span></td>
+            <td>${escHtml(u.displayName || '—')}</td>
+            <td>${escHtml(u.email || '—')}</td>
+            <td><span class="role-pill ${u.role || 'user'}">${u.role || 'user'}</span></td>
             <td>${fmtDate(u.joinedAt)}</td>
-            <td>${u.banned ? '<span class="badge badge-closed">Banned</span>' : '<span class="badge badge-open">Active</span>'}</td>
+            <td>${u.banned
+              ? '<span class="badge badge-closed">Banned</span>'
+              : '<span class="badge badge-open">Active</span>'}</td>
             <td><div class="actions-cell">
               ${u.banned
                 ? `<button class="btn btn-success btn-sm" onclick="unbanUser('${uid}')">Unban</button>`
-                : `<button class="btn btn-warn btn-sm" onclick="banUser('${uid}')">Ban</button>`}
+                : `<button class="btn btn-warn btn-sm"    onclick="banUser('${uid}')">Ban</button>`}
             </div></td>
           </tr>`).join('')}
       </tbody>
@@ -848,7 +908,7 @@ function renderModUsers(users) {
 }
 
 function renderModArticles(articles) {
-  const all = articles.filter(([,a]) => !a.deleted);
+  const all = articles.filter(([, a]) => !a.deleted);
   if (!all.length) return '<p class="muted">No articles.</p>';
   return `
     <table class="user-table">
@@ -857,8 +917,8 @@ function renderModArticles(articles) {
         ${all.map(([slug, a]) => `
           <tr>
             <td><a href="#" onclick="navigate('article','${escHtml(slug)}')">${escHtml(a.title)}</a></td>
-            <td>${escHtml(a.authorName||'—')}</td>
-            <td>${escHtml(a.category||'—')}</td>
+            <td>${escHtml(a.authorName || '—')}</td>
+            <td>${escHtml(a.category || '—')}</td>
             <td>${fmtDate(a.updatedAt)}</td>
             <td><div class="actions-cell">
               <button class="btn btn-secondary btn-sm" onclick="navigate('logs','${slug}')">Logs</button>
@@ -870,21 +930,21 @@ function renderModArticles(articles) {
 }
 
 function renderModApps(apps, role) {
-  const pending = apps.filter(([,a]) => a.status === 'pending');
+  const pending = apps.filter(([, a]) => a.status === 'pending');
   if (!pending.length) return '<p class="muted">No pending applications.</p>';
   return pending.map(([aid, a]) => `
     <div style="border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem">
       <div class="flex-between mb1">
         <div>
           <strong>${escHtml(a.userName)}</strong>
-          <span class="muted" style="margin-left:0.5rem">${escHtml(a.userEmail||'')}</span>
+          <span class="muted" style="margin-left:0.5rem">${escHtml(a.userEmail || '')}</span>
         </div>
         <span class="badge badge-pending">Pending</span>
       </div>
       <p style="font-size:0.9rem;margin-bottom:0.75rem">${escHtml(a.reason)}</p>
       <div class="flex-gap">
         <button class="btn btn-success btn-sm" onclick="reviewApplication('${aid}','approved','${a.userId}')">Approve</button>
-        <button class="btn btn-warn btn-sm" onclick="reviewApplication('${aid}','rejected','${a.userId}')">Reject</button>
+        <button class="btn btn-warn btn-sm"    onclick="reviewApplication('${aid}','rejected','${a.userId}')">Reject</button>
         <span class="muted">${fmtDateTime(a.createdAt)}</span>
       </div>
     </div>`).join('');
@@ -893,28 +953,31 @@ function renderModApps(apps, role) {
 window.banUser = async function(uid) {
   if (!confirm('Ban this user?')) return;
   await update(ref(db, `users/${uid}`), { banned: true });
-  toast('User banned.'); renderModPanel();
-};
-window.unbanUser = async function(uid) {
-  await update(ref(db, `users/${uid}`), { banned: false });
-  toast('User unbanned.', 'success'); renderModPanel();
+  toast('User banned.');
+  renderModPanel();
 };
 
-// ─── ADMIN PANEL ─────────────────────────────────────────────────
+window.unbanUser = async function(uid) {
+  await update(ref(db, `users/${uid}`), { banned: false });
+  toast('User unbanned.', 'success');
+  renderModPanel();
+};
+
+// ─── ADMIN PANEL ──────────────────────────────────────────────────
 async function renderAdminPanel() {
   if (currentProfile?.role !== 'admin') { toast('Access denied', 'error'); navigate('home'); return; }
 
   app$().innerHTML = `<div class="loading-center"><div class="spinner"></div></div>`;
   const usersSnap = await get(ref(db, 'users'));
-  const users = usersSnap.exists() ? Object.entries(usersSnap.val()) : [];
+  const users     = usersSnap.exists() ? Object.entries(usersSnap.val()) : [];
 
   app$().innerHTML = `
     <div class="panel-page">
       <h1>Admin Panel</h1>
       <div class="panel-tabs">
-        <div class="panel-tab active" id="ptab-users" onclick="switchPanelTab('users')">User Management</div>
-        <div class="panel-tab" id="ptab-articles" onclick="switchPanelTab('articles')">Articles</div>
-        <div class="panel-tab" id="ptab-apps" onclick="switchPanelTab('apps')">Applications</div>
+        <div class="panel-tab active" id="ptab-users"    onclick="switchPanelTab('users')">User Management</div>
+        <div class="panel-tab"        id="ptab-articles" onclick="switchPanelTab('articles')">Articles</div>
+        <div class="panel-tab"        id="ptab-apps"     onclick="switchPanelTab('apps')">Applications</div>
       </div>
 
       <div id="ptab-content-users">
@@ -923,20 +986,22 @@ async function renderAdminPanel() {
           <tbody>
             ${users.map(([uid, u]) => `
               <tr>
-                <td>${escHtml(u.displayName||'—')}</td>
-                <td>${escHtml(u.email||'—')}</td>
-                <td><span class="role-pill ${u.role||'user'}">${u.role||'user'}</span></td>
-                <td>${u.banned ? '<span class="badge badge-closed">Banned</span>' : '<span class="badge badge-open">Active</span>'}</td>
+                <td>${escHtml(u.displayName || '—')}</td>
+                <td>${escHtml(u.email || '—')}</td>
+                <td><span class="role-pill ${u.role || 'user'}">${u.role || 'user'}</span></td>
+                <td>${u.banned
+                  ? '<span class="badge badge-closed">Banned</span>'
+                  : '<span class="badge badge-open">Active</span>'}</td>
                 <td><div class="actions-cell">
                   ${u.role !== 'admin' ? `
                     <select class="field-input" style="padding:0.2rem 0.5rem;font-size:0.8rem;height:auto" onchange="setRole('${uid}',this.value)">
-                      <option value="user"  ${u.role==='user'  ?'selected':''}>User</option>
-                      <option value="mod"   ${u.role==='mod'   ?'selected':''}>Mod</option>
-                      <option value="admin" ${u.role==='admin' ?'selected':''}>Admin</option>
+                      <option value="user"  ${u.role === 'user'  ? 'selected' : ''}>User</option>
+                      <option value="mod"   ${u.role === 'mod'   ? 'selected' : ''}>Mod</option>
+                      <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
                     </select>` : '<span class="muted">—</span>'}
                   ${u.banned
                     ? `<button class="btn btn-success btn-sm" onclick="unbanUser('${uid}')">Unban</button>`
-                    : `<button class="btn btn-warn btn-sm" onclick="banUser('${uid}')">Ban</button>`}
+                    : `<button class="btn btn-warn btn-sm"    onclick="banUser('${uid}')">Ban</button>`}
                 </div></td>
               </tr>`).join('')}
           </tbody>
@@ -950,10 +1015,9 @@ async function renderAdminPanel() {
       </div>
     </div>`;
 
-  // Lazy load other tabs
   document.querySelectorAll('.panel-tab').forEach(t => {
     t.addEventListener('click', async () => {
-      const tab = t.id.replace('ptab-','');
+      const tab = t.id.replace('ptab-', '');
       if (tab === 'articles' && $('admin-articles-content')) {
         const snap = await get(ref(db, 'articles'));
         const arts = snap.exists() ? Object.entries(snap.val()) : [];
@@ -969,7 +1033,7 @@ async function renderAdminPanel() {
 }
 
 function renderAdminArticles(articles) {
-  const all = articles.filter(([,a]) => !a.deleted);
+  const all = articles.filter(([, a]) => !a.deleted);
   return `
     <table class="user-table">
       <thead><tr><th>Title</th><th>Author</th><th>Updated</th><th>Actions</th></tr></thead>
@@ -977,12 +1041,12 @@ function renderAdminArticles(articles) {
         ${all.map(([slug, a]) => `
           <tr>
             <td><a href="#" onclick="navigate('article','${escHtml(slug)}')">${escHtml(a.title)}</a></td>
-            <td>${escHtml(a.authorName||'—')}</td>
+            <td>${escHtml(a.authorName || '—')}</td>
             <td>${fmtDate(a.updatedAt)}</td>
             <td><div class="actions-cell">
               <button class="btn btn-secondary btn-sm" onclick="navigate('logs','${slug}')">Logs</button>
               <button class="btn btn-secondary btn-sm" onclick="navigate('edit','${slug}')">Edit</button>
-              <button class="btn btn-warn btn-sm" onclick="deleteArticle('${slug}')">Delete</button>
+              <button class="btn btn-warn btn-sm"      onclick="deleteArticle('${slug}')">Delete</button>
             </div></td>
           </tr>`).join('')}
       </tbody>
@@ -1001,18 +1065,19 @@ async function renderApply() {
     app$().innerHTML = `<div class="page empty-state"><h3>You already have elevated permissions.</h3></div>`;
     return;
   }
-  // Check for existing application
-  const snap = await get(ref(db, 'applications'));
+
+  const snap    = await get(ref(db, 'applications'));
   const existing = snap.exists()
     ? Object.values(snap.val()).find(a => a.userId === currentUser.uid && a.status === 'pending')
     : null;
 
   if (existing) {
-    app$().innerHTML = `<div class="page"><div class="apply-card">
-      <h2>Application Pending</h2>
-      <p>Your application for moderator status is currently under review. Please check back later.</p>
-      <button class="btn btn-secondary mt1" onclick="navigate('home')">← Home</button>
-    </div></div>`;
+    app$().innerHTML = `
+      <div class="page"><div class="apply-card">
+        <h2>Application Pending</h2>
+        <p>Your application for moderator status is currently under review. Please check back later.</p>
+        <button class="btn btn-secondary mt1" onclick="navigate('home')">← Home</button>
+      </div></div>`;
     return;
   }
 
@@ -1030,7 +1095,7 @@ async function renderApply() {
             placeholder="Explain your interest and any relevant experience…"></textarea>
         </div>
         <div class="editor-actions">
-          <button class="btn btn-primary" onclick="submitApplication()">Submit Application</button>
+          <button class="btn btn-primary"   onclick="submitApplication()">Submit Application</button>
           <button class="btn btn-secondary" onclick="navigate('home')">Cancel</button>
         </div>
       </div>
@@ -1064,13 +1129,13 @@ window.reviewApplication = async function(aid, status, userId) {
   renderModPanel();
 };
 
-// ─── PROFILE PAGE ──────────────────────────────────────────────
+// ─── PROFILE PAGE ─────────────────────────────────────────────────
 async function renderProfile() {
   if (!currentUser) { showAuth('login'); return; }
-  const uid  = currentUser.uid;
-  const snap = await get(ref(db, 'articles'));
+  const uid        = currentUser.uid;
+  const snap       = await get(ref(db, 'articles'));
   const myArticles = snap.exists()
-    ? Object.entries(snap.val()).filter(([,a]) => a.authorId === uid && !a.deleted)
+    ? Object.entries(snap.val()).filter(([, a]) => a.authorId === uid && !a.deleted)
     : [];
 
   app$().innerHTML = `
@@ -1094,33 +1159,12 @@ async function renderProfile() {
       : '<p class="muted">You haven\'t created any articles yet.</p>'}
       <div class="mt2">
         <button class="btn btn-primary" onclick="navigate('create')">+ New Article</button>
-        ${currentProfile?.role === 'user' ? `<button class="btn btn-secondary" style="margin-left:0.5rem" onclick="navigate('apply')">Apply for Mod</button>` : ''}
+        ${currentProfile?.role === 'user'
+          ? `<button class="btn btn-secondary" style="margin-left:0.5rem" onclick="navigate('apply')">Apply for Mod</button>`
+          : ''}
       </div>
     </div>`;
 }
 
-// ─── FIREBASE RULES NOTE ──────────────────────────────────────────
-// Your Firebase Realtime Database rules should be set to something like:
-// {
-//   "rules": {
-//     "articles": {
-//       ".read": true,
-//       "$slug": {
-//         ".write": "auth != null"
-//       }
-//     },
-//     "users": {
-//       "$uid": {
-//         ".read": "auth != null",
-//         ".write": "auth != null && auth.uid === $uid"
-//       }
-//     },
-//     "discussions": { ".read": true, ".write": "auth != null" },
-//     "logs": { ".read": "auth != null", ".write": "auth != null" },
-//     "applications": { ".read": "auth != null", ".write": "auth != null" },
-//     "revisions": { ".read": "auth != null", ".write": "auth != null" }
-//   }
-// }
-
-// ─── INIT ────────────────────────────────────────────────────────
+// ─── INIT ─────────────────────────────────────────────────────────
 renderHome();
